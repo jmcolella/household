@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { tasks, taskExecutions, reminders, reminderSchedules } from '@/lib/db/schema';
+import { tasks, taskExecutions, reminders, reminderSchedules, users } from '@/lib/db/schema';
 import { TaskExecutionStatus, ReminderStatus } from '@/app/types/enums';
 import { eq } from 'drizzle-orm';
 import type { CreateTaskRequest, UpdateTaskRequest, TaskDto } from './types';
@@ -53,13 +53,34 @@ export class TaskWriter {
         });
       }
 
-      // Fetch and return the complete DTO
-      const taskDto = await TaskReader.getTaskById(task.id);
-      if (!taskDto) {
-        throw new Error('Failed to retrieve created task');
-      }
+      // Fetch creator username and reminder within the transaction
+      const [creator] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
-      return taskDto;
+      const reminderRecord = data.isRecurring && data.cronSchedule
+        ? await tx
+            .select()
+            .from(reminders)
+            .where(eq(reminders.taskId, task.id))
+            .limit(1)
+        : [];
+
+      // Build DTO from transaction data
+      return {
+        id: task.id,
+        householdId: task.householdId,
+        title: task.title,
+        description: task.description,
+        createdBy: task.createdBy,
+        createdByName: creator?.username || 'Unknown',
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+        hasReminder: !!reminderRecord[0],
+        nextTriggerAt: reminderRecord[0]?.nextTriggerAt || null,
+      };
     });
   }
 
