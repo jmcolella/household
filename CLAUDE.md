@@ -48,6 +48,47 @@ interface ApiResponse<T> {
 - Server components are rare but exist in the layout structure
 - Always check auth state client-side with `useGetUser()` hook
 
+**CRITICAL RULE: Never Use Supabase Client in Client Components**
+
+This is a **hard requirement** - violating this rule creates security vulnerabilities and breaks the architecture.
+
+❌ **FORBIDDEN - Never do this:**
+```typescript
+'use client';
+import { createClient } from '@/lib/supabase/client';
+
+export default function MyComponent() {
+  const supabase = createClient(); // ❌ SECURITY RISK
+  const handleClick = async () => {
+    await supabase.from('users').select(); // ❌ FORBIDDEN
+  };
+}
+```
+
+✅ **CORRECT - Always do this instead:**
+```typescript
+'use client';
+
+export default function MyComponent() {
+  const handleClick = async () => {
+    // Use API routes or server actions
+    await fetch('/api/my-endpoint'); // ✅ Correct
+  };
+}
+```
+
+**Why this matters:**
+- Supabase client in client components exposes credentials to browser
+- Bypasses API layer and breaks authentication/authorization
+- Makes it impossible to audit data access
+- Violates principle of least privilege
+
+**How to handle common scenarios:**
+- **Authentication**: Use API routes (`POST /api/auth/login`, etc.)
+- **User data**: Fetch from `GET /api/auth/user`
+- **Database queries**: Always go through API routes in `/api` folder
+- **Real-time subscriptions**: Use server-sent events from API routes (if needed later)
+
 **Backend Domain Structure: API → Reader/Writer → Database**
 The backend follows a strict layered architecture to maintain separation of concerns:
 - **API Routes** (`app/api/**/route.ts`): Handle HTTP requests only, never interact with Prisma directly
@@ -68,8 +109,35 @@ The backend follows a strict layered architecture to maintain separation of conc
 - ESLint rule prevents relative imports in the `app/` directory
 - This applies everywhere in the codebase
 
-**UI Component Library**
-- Use Shadcn components for consistent styling
+**UI Component Library - STRICT RULES**
+
+**ALWAYS use Shadcn components. NEVER use any other component library.**
+
+✅ **ALLOWED:**
+- Shadcn components from `@/components/ui/*`
+- Radix UI primitives (via shadcn) from `@radix-ui/*`
+- Lucide icons from `lucide-react`
+
+❌ **FORBIDDEN - Never install or use:**
+- `@base-ui/react` - NO. Use Radix UI via shadcn
+- `sonner` - NO. Use shadcn toast
+- `react-hot-toast` - NO. Use shadcn toast
+- `@headlessui/react` - NO. Use shadcn/Radix
+- `@mui/material` - NO. Use shadcn
+- `antd` - NO. Use shadcn
+- `chakra-ui` - NO. Use shadcn
+- Any other component library - NO. Use shadcn
+
+**Required utility packages (DO NOT remove):**
+- `clsx` - Used by shadcn's `cn()` utility
+- `tailwind-merge` - Used by shadcn's `cn()` utility
+- `class-variance-authority` - Used by shadcn for variants
+
+**When you need a component:**
+1. Check if shadcn has it: https://ui.shadcn.com/docs/components
+2. Install via: `npm exec shadcn@latest add [component-name]`
+3. NEVER install from npm directly
+4. NEVER use @base-ui - always use Radix UI (default shadcn)
 
 **Frontend Patterns**
 - **Abstract React Query Behind Custom Hooks**: All React Query usage must be wrapped in custom hooks (located in `app/client/hooks/`). Components should never call `useQuery` or `useMutation` directly.
