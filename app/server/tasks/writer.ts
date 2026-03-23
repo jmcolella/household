@@ -2,14 +2,14 @@ import { db } from '@/lib/db';
 import { tasks, taskExecutions, reminders, reminderSchedules, users } from '@/lib/db/schema';
 import { TaskExecutionStatus, ReminderStatus } from '@/app/types/enums';
 import { eq } from 'drizzle-orm';
-import type { CreateTaskRequest, UpdateTaskRequest, TaskDto } from './types';
+import type { CreateTaskData, UpdateTaskData, TaskDto } from './types';
 import { TaskReader } from './reader';
 
 export class TaskWriter {
   static async createTask(
     householdId: number,
     userId: number,
-    data: CreateTaskRequest
+    data: CreateTaskData
   ): Promise<TaskDto> {
     return await db.transaction(async (tx) => {
       // 1. Insert task
@@ -86,7 +86,7 @@ export class TaskWriter {
 
   static async updateTask(
     taskId: number,
-    data: UpdateTaskRequest
+    data: UpdateTaskData
   ): Promise<TaskDto> {
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),

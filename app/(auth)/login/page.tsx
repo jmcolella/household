@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import type { LoginRequest, UserResponse } from '@/app/api/auth/types';
+import type { ApiResponse } from '@/app/api/types';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,18 +19,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const requestBody: LoginRequest = { email, password };
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
       });
 
-      if (error) {
-        setError(error.message);
+      const data: ApiResponse<UserResponse> = await res.json();
+
+      if (data.error) {
+        setError(data.error);
         return;
       }
 
-      if (data.user) {
+      if (data.data) {
         router.push('/dashboard');
         router.refresh();
       }

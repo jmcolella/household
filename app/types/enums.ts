@@ -18,9 +18,11 @@ export type ReminderStatus = typeof ReminderStatus[keyof typeof ReminderStatus];
 
 // Validation functions
 export function isValidTaskExecutionStatus(value: string): value is TaskExecutionStatus {
-  return Object.values(TaskExecutionStatus).includes(value as TaskExecutionStatus);
+  const validStatuses: readonly string[] = Object.values(TaskExecutionStatus);
+  return validStatuses.includes(value);
 }
 
 export function isValidReminderStatus(value: string): value is ReminderStatus {
-  return Object.values(ReminderStatus).includes(value as ReminderStatus);
+  const validStatuses: readonly string[] = Object.values(ReminderStatus);
+  return validStatuses.includes(value);
 }

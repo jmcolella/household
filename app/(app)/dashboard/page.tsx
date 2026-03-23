@@ -47,8 +47,8 @@ export default function DashboardPage() {
       <div className="min-h-screen p-4 pb-20">
         <ErrorMessage
           message={
-            (todayError as Error)?.message ||
-            (overdueError as Error)?.message ||
+            todayError?.message ||
+            overdueError?.message ||
             'Failed to load tasks'
           }
         />

@@ -1,15 +1,7 @@
 import { db } from '@/lib/db';
 import { taskExecutions, tasks, users } from '@/lib/db/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
-import type { TaskExecutionStatus } from '@/app/types/enums';
-import type { TaskExecutionDto } from './types';
-
-interface ExecutionFilters {
-  householdId: number;
-  status?: TaskExecutionStatus;
-  startDate?: string;
-  endDate?: string;
-}
+import { eq, gte, lte, sql } from 'drizzle-orm';
+import type { TaskExecutionDto, ExecutionFilters } from './types';
 
 export class TaskExecutionReader {
   static async getExecutions(

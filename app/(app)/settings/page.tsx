@@ -1,7 +1,6 @@
 'use client';
 
 import { useGetUser } from '@/app/client/hooks/use-user';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/loading-spinner';
@@ -13,8 +12,9 @@ export default function SettingsPage() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+    });
     router.push('/login');
     router.refresh();
   };

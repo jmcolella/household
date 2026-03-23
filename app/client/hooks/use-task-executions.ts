@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { TaskExecutionDto } from '@/app/api/task-executions/types';
+import type { TaskExecutionResponse } from '@/app/api/task-executions/types';
 import type { ApiResponse } from '@/app/api/types';
 import type { TaskExecutionStatus } from '@/app/types/enums';
 
@@ -22,7 +22,7 @@ export function useTaskExecutions(options?: UseTaskExecutionsOptions) {
     queryFn: async () => {
       const url = `/api/task-executions${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await fetch(url);
-      const data: ApiResponse<TaskExecutionDto[]> = await res.json();
+      const data: ApiResponse<TaskExecutionResponse[]> = await res.json();
       if (data.error) throw new Error(data.error);
       return data.data!;
     },
@@ -44,7 +44,7 @@ export function useCompleteExecution() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'complete', completionNotes }),
       });
-      const data: ApiResponse<TaskExecutionDto> = await res.json();
+      const data: ApiResponse<TaskExecutionResponse> = await res.json();
       if (data.error) throw new Error(data.error);
       return data.data!;
     },
@@ -69,7 +69,7 @@ export function useAssignExecution() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'assign', assigneeId }),
       });
-      const data: ApiResponse<TaskExecutionDto> = await res.json();
+      const data: ApiResponse<TaskExecutionResponse> = await res.json();
       if (data.error) throw new Error(data.error);
       return data.data!;
     },

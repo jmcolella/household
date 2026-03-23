@@ -1,34 +1,36 @@
 import type { TaskExecutionStatus } from '@/app/types/enums';
 
-// API response types
-export interface TaskExecutionResponse {
+export interface TaskExecutionDto {
   id: number;
   taskId: number;
   taskTitle: string;
   status: TaskExecutionStatus;
   assignee: number | null;
   assigneeName: string | null;
-  completedAt: string | null;  // ISO string
+  completedAt: Date | null;
   completedBy: number | null;
   completedByName: string | null;
   completionNotes: string | null;
-  expectedCompletedAt: string;  // ISO string
+  expectedCompletedAt: Date;
   isOverdue: boolean;
-  createdAt: string;  // ISO string
+  createdAt: Date;
 }
 
-// API request types
-export interface CompleteExecutionRequest {
-  action: 'complete';
+export interface ExecutionFilters {
+  householdId: number;
+  status?: TaskExecutionStatus;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface CompleteExecutionData {
   completionNotes?: string;
 }
 
-export interface AssignExecutionRequest {
-  action: 'assign';
+export interface AssignExecutionData {
   assigneeId: number;
 }
 
-export interface CancelExecutionRequest {
-  action: 'cancel';
+export interface CancelExecutionData {
   reason: string;
 }

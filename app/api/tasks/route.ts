@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import { TaskReader } from './reader';
-import { TaskWriter } from './writer';
+import { TaskService } from '@/app/server/tasks/service';
+import { UserService } from '@/app/server/users/service';
+import type { TaskDto } from '@/app/server/tasks/types';
 import type { ApiResponse } from '../types';
-import type { TaskDto, CreateTaskRequest } from './types';
+import type { CreateTaskRequest, TaskResponse } from './types';
+
+// Helper: Transform server TaskDto to API TaskResponse
+function toTaskResponse(task: TaskDto): TaskResponse {
+  return {
+    ...task,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+    nextTriggerAt: task.nextTriggerAt?.toISOString() ?? null,
+  };
+}
 
 export async function GET(
   request: NextRequest
-): Promise<NextResponse<ApiResponse<TaskDto[]>>> {
+): Promise<NextResponse<ApiResponse<TaskResponse[]>>> {
   try {
     const supabase = await createClient();
     const {
@@ -21,21 +29,22 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's household from database
-    const dbUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.supabaseUserId, user.id))
-      .limit(1);
+    // Get user via UserService
+    const dbUser = await UserService.getUserBySupabaseId(user.id);
 
-    if (dbUser.length === 0) {
+    if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const householdId = dbUser[0].householdId;
-    const taskList = await TaskReader.getTasksByHousehold(householdId);
+    const householdId = dbUser.householdId;
 
-    return NextResponse.json({ data: taskList });
+    // Call Service instead of Reader directly
+    const tasks = await TaskService.getTasksByHousehold(householdId);
+
+    // Transform to API response format
+    const response = tasks.map(toTaskResponse);
+
+    return NextResponse.json({ data: response });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An error occurred';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -44,7 +53,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest
-): Promise<NextResponse<ApiResponse<TaskDto>>> {
+): Promise<NextResponse<ApiResponse<TaskResponse>>> {
   try {
     const supabase = await createClient();
     const {
@@ -55,19 +64,15 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's household and ID from database
-    const dbUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.supabaseUserId, user.id))
-      .limit(1);
+    // Get user via UserService
+    const dbUser = await UserService.getUserBySupabaseId(user.id);
 
-    if (dbUser.length === 0) {
+    if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const householdId = dbUser[0].householdId;
-    const userId = dbUser[0].id;
+    const householdId = dbUser.householdId;
+    const userId = dbUser.id;
 
     const body: CreateTaskRequest = await request.json();
 
@@ -93,9 +98,13 @@ export async function POST(
       );
     }
 
-    const task = await TaskWriter.createTask(householdId, userId, body);
+    // Call Service with CreateTaskData
+    const task = await TaskService.createTask(householdId, userId, body);
 
-    return NextResponse.json({ data: task }, { status: 201 });
+    // Transform to API response format
+    const response = toTaskResponse(task);
+
+    return NextResponse.json({ data: response }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An error occurred';
     return NextResponse.json({ error: message }, { status: 500 });

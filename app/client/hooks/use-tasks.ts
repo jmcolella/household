@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { TaskDto, CreateTaskRequest } from '@/app/api/tasks/types';
+import type { TaskResponse, CreateTaskRequest } from '@/app/api/tasks/types';
 import type { ApiResponse } from '@/app/api/types';
 
 export function useTasks() {
@@ -9,7 +9,7 @@ export function useTasks() {
     queryKey: ['tasks'],
     queryFn: async () => {
       const res = await fetch('/api/tasks');
-      const data: ApiResponse<TaskDto[]> = await res.json();
+      const data: ApiResponse<TaskResponse[]> = await res.json();
       if (data.error) throw new Error(data.error);
       return data.data!;
     },
@@ -26,7 +26,7 @@ export function useCreateTask() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       });
-      const data: ApiResponse<TaskDto> = await res.json();
+      const data: ApiResponse<TaskResponse> = await res.json();
       if (data.error) throw new Error(data.error);
       return data.data!;
     },

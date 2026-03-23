@@ -25,7 +25,7 @@ export default function TasksPage() {
   if (error) {
     return (
       <div className="min-h-screen p-4 pb-20">
-        <ErrorMessage message={(error as Error).message || 'Failed to load tasks'} />
+        <ErrorMessage message={error.message || 'Failed to load tasks'} />
         <BottomNav />
       </div>
     );

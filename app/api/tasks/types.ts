@@ -1,16 +1,4 @@
-export interface TaskDto {
-  id: number;
-  householdId: number;
-  title: string;
-  description: string | null;
-  createdBy: number;
-  createdByName: string;
-  createdAt: Date;
-  updatedAt: Date;
-  hasReminder: boolean;
-  nextTriggerAt: Date | null;
-}
-
+// API request types
 export interface CreateTaskRequest {
   title: string;
   description?: string;
@@ -23,4 +11,18 @@ export interface CreateTaskRequest {
 export interface UpdateTaskRequest {
   title?: string;
   description?: string;
+}
+
+// API response types
+export interface TaskResponse {
+  id: number;
+  householdId: number;
+  title: string;
+  description: string | null;
+  createdBy: number;
+  createdByName: string;
+  createdAt: string;  // ISO string for JSON serialization
+  updatedAt: string;  // ISO string
+  hasReminder: boolean;
+  nextTriggerAt: string | null;  // ISO string
 }
