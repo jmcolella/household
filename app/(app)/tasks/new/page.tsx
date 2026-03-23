@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreateTask } from '@/app/client/hooks/use-tasks';
+import { useTaskForm, type TaskFormData } from '@/app/(app)/tasks/new/use-task-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ErrorMessage } from '@/components/error-message';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { BottomNav } from '@/components/bottom-nav';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -13,29 +16,29 @@ import Link from 'next/link';
 export default function NewTaskPage() {
   const router = useRouter();
   const createTask = useCreateTask();
+  const form = useTaskForm();
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [cronSchedule, setCronSchedule] = useState('0 9 * * *'); // Default: 9 AM daily
-  const [expectedDate, setExpectedDate] = useState('');
+  const isRecurring = form.watch('isRecurring');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (data: TaskFormData) => {
     try {
       await createTask.mutateAsync({
-        title,
-        description: description || undefined,
-        isRecurring,
-        cronSchedule: isRecurring ? cronSchedule : undefined,
-        expectedCompletedAt: !isRecurring ? expectedDate : undefined,
+        title: data.title,
+        description: data.description || undefined,
+        isRecurring: data.isRecurring,
+        cronSchedule: data.isRecurring ? data.cronSchedule : undefined,
+        expectedCompletedAt: !data.isRecurring ? data.expectedDate : undefined,
       });
 
       router.push('/tasks');
       router.refresh();
-    } catch (error) {
-      // Error is handled by the mutation
+    } catch {
+      if (createTask.error) {
+        form.setError('root', {
+          type: 'manual',
+          message: createTask.error.message,
+        });
+      }
     }
   };
 
@@ -56,94 +59,104 @@ export default function NewTaskPage() {
             <CardTitle>Create a New Task</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {createTask.error && (
-                <ErrorMessage message={createTask.error.message} />
-              )}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {form.formState.errors.root && (
+                  <div className="rounded-md bg-error/10 border border-error p-3">
+                    <p className="text-sm text-error">{form.formState.errors.root.message}</p>
+                  </div>
+                )}
 
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium mb-1">
-                  Title
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Take out the trash"
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input type="text" placeholder="Take out the trash" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium mb-1">
-                  Description (optional)
-                </label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  rows={3}
-                  placeholder="Additional details..."
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (optional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Additional details..."
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={isRecurring}
-                    onChange={(e) => setIsRecurring(e.target.checked)}
-                    className="rounded border-input"
-                  />
-                  <span className="text-sm font-medium">Recurring task</span>
-                </label>
-              </div>
+                <FormField
+                  control={form.control}
+                  name="isRecurring"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Recurring task</FormLabel>
+                    </FormItem>
+                  )}
+                />
 
-              {isRecurring ? (
-                <div>
-                  <label htmlFor="schedule" className="block text-sm font-medium mb-1">
-                    Schedule (cron format)
-                  </label>
-                  <input
-                    id="schedule"
-                    type="text"
-                    required
-                    value={cronSchedule}
-                    onChange={(e) => setCronSchedule(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="0 9 * * *"
+                {isRecurring ? (
+                  <FormField
+                    control={form.control}
+                    name="cronSchedule"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Schedule (cron format)</FormLabel>
+                        <FormControl>
+                          <Input type="text" placeholder="0 9 * * *" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Example: &quot;0 9 * * *&quot; = Daily at 9 AM
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Example: &quot;0 9 * * *&quot; = Daily at 9 AM
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <label htmlFor="expectedDate" className="block text-sm font-medium mb-1">
-                    Due Date
-                  </label>
-                  <input
-                    id="expectedDate"
-                    type="datetime-local"
-                    required
-                    value={expectedDate}
-                    onChange={(e) => setExpectedDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="expectedDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Due Date</FormLabel>
+                        <FormControl>
+                          <Input type="datetime-local" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              )}
+                )}
 
-              <Button
-                type="submit"
-                disabled={createTask.isPending}
-                className="w-full"
-              >
-                {createTask.isPending ? 'Creating...' : 'Create Task'}
-              </Button>
-            </form>
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting || createTask.isPending}
+                  className="w-full"
+                >
+                  {form.formState.isSubmitting || createTask.isPending ? 'Creating...' : 'Create Task'}
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>
