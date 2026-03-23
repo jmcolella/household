@@ -3,10 +3,10 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCompleteExecution } from '@/app/client/hooks/use-task-executions';
-import type { TaskExecutionDto } from '@/app/api/task-executions/types';
+import type { TaskExecutionResponse } from '@/app/api/task-executions/types';
 
 interface TaskExecutionCardProps {
-  execution: TaskExecutionDto;
+  execution: TaskExecutionResponse;
 }
 
 export function TaskExecutionCard({ execution }: TaskExecutionCardProps) {

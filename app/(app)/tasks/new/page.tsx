@@ -58,7 +58,7 @@ export default function NewTaskPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {createTask.error && (
-                <ErrorMessage message={(createTask.error as Error).message} />
+                <ErrorMessage message={createTask.error.message} />
               )}
 
               <div>

@@ -89,7 +89,54 @@ export default function MyComponent() {
 - **Database queries**: Always go through API routes in `/api` folder
 - **Real-time subscriptions**: Use server-sent events from API routes (if needed later)
 
-**Backend Domain Structure: API → Reader/Writer → Database**
+**CRITICAL RULE: Never Import Database (db) in API Routes**
+
+This is a **hard requirement** - API routes must NEVER import or use the database directly.
+
+❌ **FORBIDDEN - Never do this:**
+```typescript
+// app/api/tasks/route.ts
+import { db } from '@/lib/db';  // ❌ FORBIDDEN
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+
+export async function GET() {
+  // ❌ FORBIDDEN - Direct database access in API route
+  const dbUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.supabaseUserId, userId))
+    .limit(1);
+}
+```
+
+✅ **CORRECT - Always use domain services:**
+```typescript
+// app/api/tasks/route.ts
+import { UserService } from '@/app/server/users/service';  // ✅ Correct
+import { TaskService } from '@/app/server/tasks/service';
+
+export async function GET() {
+  // ✅ Correct - Use service layer
+  const user = await UserService.getUserBySupabaseId(userId);
+  const tasks = await TaskService.getTasksByHousehold(user.householdId);
+}
+```
+
+**Why this matters:**
+- Enforces proper layering and separation of concerns
+- Business logic stays in the service layer, not scattered in API routes
+- Makes code testable (services can be tested without HTTP layer)
+- Allows business logic to be reused across multiple API endpoints
+- Database implementation details are hidden from API layer
+
+**Pattern for common operations:**
+- **Get user from Supabase ID**: `UserService.getUserBySupabaseId(supabaseUserId)`
+- **Get user by ID**: `UserService.getUserById(id)`
+- **Create household**: `HouseholdService.getOrCreateForUser(supabaseUserId, data)`
+- **Query domain data**: Use the appropriate domain service (TaskService, etc.)
+
+**Backend Domain Structure: API → Service → Reader/Writer → Database**
 The backend follows a strict layered architecture to maintain separation of concerns:
 - **API Routes** (`app/api/**/route.ts`): Handle HTTP requests only, never interact with Prisma directly
 - **Reader/Writer Classes**: Abstract database access behind domain-specific classes
@@ -158,12 +205,20 @@ The backend follows a strict layered architecture to maintain separation of conc
   }
   function useData(options: UseDataOptions) {}
   ```
-- **Avoid Type Casting**: Never use `as` type assertions or casting. Instead, create explicit types or use type discrimination. Type casting hides potential type safety issues and makes code harder to refactor.
-  ```typescript
-  // ❌ Avoid type casting
-  const formValues = { name: "", goalType: undefined } as Values;
+- **FORBIDDEN: Type Casting**: **NEVER** use `as` type assertions or casting anywhere in the codebase. This is a hard requirement. Type casting bypasses TypeScript's type safety, hides bugs, and makes refactoring dangerous.
 
-  // ✅ Prefer explicit interface with proper defaults
+  **Instead, use:**
+  1. **Type inference** - Let TypeScript infer the type naturally
+  2. **Explicit type definitions** - Define variables with proper types upfront
+  3. **Type discrimination** - Use type guards and narrowing
+
+  ```typescript
+  // ❌ FORBIDDEN - Type casting
+  const formValues = { name: "", goalType: undefined } as Values;
+  const body: CreateTaskRequest = await request.json();  // No cast needed!
+  const userId = data.user.id as string;
+
+  // ✅ CORRECT - Explicit interface with proper defaults
   interface Values {
     name: string;
     goalType: GoalType | undefined;
@@ -177,7 +232,24 @@ The backend follows a strict layered architecture to maintain separation of conc
     targetValue: "",
     dateRange: undefined,
   };
+
+  // ✅ CORRECT - Type inference from JSON parsing
+  const body = await request.json();
+  // Then validate/narrow the type if needed
+  if (!body.email || !body.password) {
+    throw new Error('Invalid input');
+  }
+
+  // ✅ CORRECT - Type guard for narrowing
+  function isValidRequest(body: unknown): body is CreateTaskRequest {
+    return typeof body === 'object' && body !== null && 'title' in body;
+  }
   ```
+
+  **Common violations to avoid:**
+  - `await request.json() as SomeType` - Remove the cast, use inference
+  - `someValue as any` - Never acceptable, fix the types properly
+  - `data.field as string` - Use proper typing or type guards
 
 ## Important Implementation Notes
 

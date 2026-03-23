@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import type { SignupRequest, UserResponse } from '@/app/api/auth/types';
+import type { ApiResponse } from '@/app/api/types';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -19,23 +20,21 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-        },
+      const requestBody: SignupRequest = { email, password, username };
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
       });
 
-      if (error) {
-        setError(error.message);
+      const data: ApiResponse<UserResponse> = await res.json();
+
+      if (data.error) {
+        setError(data.error);
         return;
       }
 
-      if (data.user) {
+      if (data.data) {
         // Redirect to onboarding to create/join household
         router.push('/onboarding');
         router.refresh();

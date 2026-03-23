@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { db } from '@/lib/db';
-import { households, users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { HouseholdService } from '@/app/server/households/service';
 import type { ApiResponse } from '../types';
 
 interface CreateHouseholdRequest {
@@ -32,48 +30,24 @@ export async function POST(
       );
     }
 
-    console.log('users', users);
+    // Use service to check and create household
+    const result = await HouseholdService.getOrCreateForUser(user.id, {
+      name: body.name,
+      username: body.username,
+      email: user.email!,
+    });
 
-    // Check if user already has a household
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.supabaseUserId, user.id))
-      .limit(1);
-
-    if (existingUser.length > 0) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'User already has a household' },
+        { error: result.error },
         { status: 400 }
       );
     }
 
-    // Create household and user in transaction
-    const result = await db.transaction(async (tx) => {
-      const [household] = await tx
-        .insert(households)
-        .values({
-          name: body.name,
-        })
-        .returning();
-
-      const [dbUser] = await tx
-        .insert(users)
-        .values({
-          householdId: household.id,
-          supabaseUserId: user.id,
-          username: body.username,
-          email: user.email!,
-        })
-        .returning();
-
-      return {
-        householdId: household.id,
-        userId: dbUser.id,
-      };
-    });
-
-    return NextResponse.json({ data: result }, { status: 201 });
+    return NextResponse.json(
+      { data: { householdId: result.householdId, userId: result.userId } },
+      { status: 201 }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An error occurred';
     return NextResponse.json({ error: message }, { status: 500 });

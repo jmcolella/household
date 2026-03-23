@@ -1,17 +1,17 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import type { UserResponse } from '@/app/api/auth/types';
+import type { ApiResponse } from '@/app/api/types';
 
 export function useGetUser() {
   return useQuery({
     queryKey: ['user'],
     queryFn: async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      return user;
+      const res = await fetch('/api/auth/user');
+      const data: ApiResponse<UserResponse | null> = await res.json();
+      if (data.error) throw new Error(data.error);
+      return data.data;
     },
   });
 }
