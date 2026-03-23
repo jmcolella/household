@@ -1,47 +1,46 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useOnboardingForm, type OnboardingFormData } from '@/app/(app)/onboarding/use-onboarding-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ErrorMessage } from '@/components/error-message';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import type { ApiResponse } from '@/app/api/types';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [householdName, setHouseholdName] = useState('');
-  const [username, setUsername] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const form = useOnboardingForm();
 
-  const handleCreateHousehold = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
+  const onSubmit = async (data: OnboardingFormData) => {
     try {
       const res = await fetch('/api/households', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: householdName,
-          username,
+          name: data.householdName,
+          username: data.username,
         }),
       });
 
-      const data = await res.json();
+      const result: ApiResponse<unknown> = await res.json();
 
-      if (data.error) {
-        setError(data.error);
+      if (result.error) {
+        form.setError('root', {
+          type: 'manual',
+          message: result.error
+        });
         return;
       }
 
       // Redirect to dashboard
       router.push('/dashboard');
       router.refresh();
-    } catch (err) {
-      setError('An unexpected error occurred');
-    } finally {
-      setLoading(false);
+    } catch {
+      form.setError('root', {
+        type: 'manual',
+        message: 'An unexpected error occurred'
+      });
     }
   };
 
@@ -51,47 +50,55 @@ export default function OnboardingPage() {
         <CardHeader>
           <CardTitle className="text-2xl text-center">Welcome to Household!</CardTitle>
           <p className="text-center text-muted-foreground mt-2">
-            Let's set up your household
+            Let&apos;s set up your household
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCreateHousehold} className="space-y-4">
-            {error && <ErrorMessage message={error} />}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {form.formState.errors.root && (
+                <div className="rounded-md bg-error/10 border border-error p-3">
+                  <p className="text-sm text-error">{form.formState.errors.root.message}</p>
+                </div>
+              )}
 
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-1">
-                Your Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="johndoe"
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your Username</FormLabel>
+                    <FormControl>
+                      <Input type="text" placeholder="johndoe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div>
-              <label htmlFor="householdName" className="block text-sm font-medium mb-1">
-                Household Name
-              </label>
-              <input
-                id="householdName"
-                type="text"
-                required
-                value={householdName}
-                onChange={(e) => setHouseholdName(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="The Smith Family"
+              <FormField
+                control={form.control}
+                name="householdName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Household Name</FormLabel>
+                    <FormControl>
+                      <Input type="text" placeholder="The Smith Family" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Creating...' : 'Create Household'}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="w-full"
+              >
+                {form.formState.isSubmitting ? 'Creating...' : 'Create Household'}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>

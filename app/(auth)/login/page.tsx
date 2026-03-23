@@ -1,46 +1,43 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { LoginRequest, UserResponse } from '@/app/api/auth/types';
+import { useLoginForm, type LoginFormData } from '@/app/(auth)/login/use-login-form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import type { ApiResponse } from '@/app/api/types';
+import type { UserResponse } from '@/app/api/auth/types';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const form = useLoginForm();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      const requestBody: LoginRequest = { email, password };
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(data),
       });
 
-      const data: ApiResponse<UserResponse> = await res.json();
+      const result: ApiResponse<UserResponse> = await res.json();
 
-      if (data.error) {
-        setError(data.error);
+      if (result.error) {
+        form.setError('root', {
+          type: 'manual',
+          message: result.error
+        });
         return;
       }
 
-      if (data.data) {
-        router.push('/dashboard');
-        router.refresh();
-      }
-    } catch (err) {
-      setError('An unexpected error occurred');
-    } finally {
-      setLoading(false);
+      router.push('/dashboard');
+      router.refresh();
+    } catch {
+      form.setError('root', {
+        type: 'manual',
+        message: 'An unexpected error occurred'
+      });
     }
   };
 
@@ -52,60 +49,60 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 
-        <form onSubmit={handleLogin} className="mt-8 space-y-6">
-          {error && (
-            <div className="rounded-md bg-error/10 border border-error p-3">
-              <p className="text-sm text-error">{error}</p>
-            </div>
-          )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-6">
+            {form.formState.errors.root && (
+              <div className="rounded-md bg-error/10 border border-error p-3">
+                <p className="text-sm text-error">{form.formState.errors.root.message}</p>
+              </div>
+            )}
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="you@example.com"
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="you@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              className="w-full"
+            >
+              {form.formState.isSubmitting ? 'Signing in...' : 'Sign in'}
+            </Button>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 px-4 bg-primary text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-
-          <p className="text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-primary hover:underline font-medium">
-              Sign up
-            </Link>
-          </p>
-        </form>
+            <p className="text-center text-sm">
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="text-primary hover:underline font-medium">
+                Sign up
+              </Link>
+            </p>
+          </form>
+        </Form>
       </div>
     </div>
   );
