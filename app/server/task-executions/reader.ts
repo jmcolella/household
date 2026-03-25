@@ -29,6 +29,11 @@ export class TaskExecutionReader {
       query = query.where(eq(taskExecutions.status, filters.status));
     }
 
+    // Apply taskId filter
+    if (filters.taskId !== undefined) {
+      query = query.where(eq(taskExecutions.taskId, filters.taskId));
+    }
+
     // Apply date range filters
     if (filters.startDate) {
       query = query.where(
@@ -55,6 +60,7 @@ export class TaskExecutionReader {
       completedBy: row.execution.completedBy,
       completedByName: row.completedByUser?.username || null,
       completionNotes: row.execution.completionNotes,
+      cancellationReason: row.execution.cancellationReason,
       expectedCompletedAt: row.execution.expectedCompletedAt,
       isOverdue:
         row.execution.status === 'OPEN' &&
@@ -97,6 +103,7 @@ export class TaskExecutionReader {
       completedBy: row.execution.completedBy,
       completedByName: row.completedByUser?.username || null,
       completionNotes: row.execution.completionNotes,
+      cancellationReason: row.execution.cancellationReason,
       expectedCompletedAt: row.execution.expectedCompletedAt,
       isOverdue:
         row.execution.status === 'OPEN' &&

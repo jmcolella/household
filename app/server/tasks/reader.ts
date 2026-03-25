@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { tasks, reminders, users } from '@/lib/db/schema';
+import { tasks, reminders, users, reminderSchedules } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import type { TaskDto } from './types';
 
@@ -10,9 +10,11 @@ export class TaskReader {
         task: tasks,
         reminder: reminders,
         creator: users,
+        reminderSchedule: reminderSchedules,
       })
       .from(tasks)
       .leftJoin(reminders, eq(tasks.id, reminders.taskId))
+      .leftJoin(reminderSchedules, eq(reminders.id, reminderSchedules.reminderId))
       .leftJoin(users, eq(tasks.createdBy, users.id))
       .where(eq(tasks.householdId, householdId));
 
@@ -27,6 +29,7 @@ export class TaskReader {
       updatedAt: row.task.updatedAt,
       hasReminder: !!row.reminder,
       nextTriggerAt: row.reminder?.nextTriggerAt || null,
+      cronSchedule: row.reminderSchedule?.schedule || null,
     }));
   }
 
@@ -36,9 +39,11 @@ export class TaskReader {
         task: tasks,
         reminder: reminders,
         creator: users,
+        reminderSchedule: reminderSchedules,
       })
       .from(tasks)
       .leftJoin(reminders, eq(tasks.id, reminders.taskId))
+      .leftJoin(reminderSchedules, eq(reminders.id, reminderSchedules.reminderId))
       .leftJoin(users, eq(tasks.createdBy, users.id))
       .where(eq(tasks.id, id))
       .limit(1);
@@ -59,6 +64,7 @@ export class TaskReader {
       updatedAt: row.task.updatedAt,
       hasReminder: !!row.reminder,
       nextTriggerAt: row.reminder?.nextTriggerAt || null,
+      cronSchedule: row.reminderSchedule?.schedule || null,
     };
   }
 
@@ -71,9 +77,11 @@ export class TaskReader {
         task: tasks,
         reminder: reminders,
         creator: users,
+        reminderSchedule: reminderSchedules,
       })
       .from(tasks)
       .leftJoin(reminders, eq(tasks.id, reminders.taskId))
+      .leftJoin(reminderSchedules, eq(reminders.id, reminderSchedules.reminderId))
       .leftJoin(users, eq(tasks.createdBy, users.id))
       .where(eq(tasks.householdId, householdId));
 
@@ -88,6 +96,7 @@ export class TaskReader {
       updatedAt: row.task.updatedAt,
       hasReminder: !!row.reminder,
       nextTriggerAt: row.reminder?.nextTriggerAt || null,
+      cronSchedule: row.reminderSchedule?.schedule || null,
     }));
   }
 }

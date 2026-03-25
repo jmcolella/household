@@ -3,12 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { useCreateTask } from '@/app/client/hooks/use-tasks';
 import { useTaskForm, type TaskFormData } from '@/app/(app)/tasks/new/use-task-form';
+import { generateCronExpression, getCronDescription } from '@/lib/utils/cron-generator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BottomNav } from '@/components/bottom-nav';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -19,14 +21,29 @@ export default function NewTaskPage() {
   const form = useTaskForm();
 
   const isRecurring = form.watch('isRecurring');
+  const frequency = form.watch('frequency');
+  const time = form.watch('time');
+  const dayOfWeek = form.watch('dayOfWeek');
+  const dayOfMonth = form.watch('dayOfMonth');
 
   const onSubmit = async (data: TaskFormData) => {
     try {
+      let cronSchedule: string | undefined;
+
+      if (data.isRecurring && data.frequency && data.time) {
+        cronSchedule = generateCronExpression({
+          frequency: data.frequency,
+          time: data.time,
+          dayOfWeek: data.dayOfWeek,
+          dayOfMonth: data.dayOfMonth,
+        });
+      }
+
       await createTask.mutateAsync({
         title: data.title,
         description: data.description || undefined,
         isRecurring: data.isRecurring,
-        cronSchedule: data.isRecurring ? data.cronSchedule : undefined,
+        cronSchedule,
         expectedCompletedAt: !data.isRecurring ? data.expectedDate : undefined,
       });
 
@@ -116,22 +133,119 @@ export default function NewTaskPage() {
                 />
 
                 {isRecurring ? (
-                  <FormField
-                    control={form.control}
-                    name="cronSchedule"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Schedule (cron format)</FormLabel>
-                        <FormControl>
-                          <Input type="text" placeholder="0 9 * * *" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Example: &quot;0 9 * * *&quot; = Daily at 9 AM
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="frequency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Frequency</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select frequency" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="DAILY">Daily</SelectItem>
+                              <SelectItem value="WEEKLY">Weekly</SelectItem>
+                              <SelectItem value="MONTHLY">Monthly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="time"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Time</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {frequency === 'WEEKLY' && (
+                      <FormField
+                        control={form.control}
+                        name="dayOfWeek"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Day of Week</FormLabel>
+                            <Select
+                              onValueChange={(value) => field.onChange(parseInt(value))}
+                              value={field.value?.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select day" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="0">Sunday</SelectItem>
+                                <SelectItem value="1">Monday</SelectItem>
+                                <SelectItem value="2">Tuesday</SelectItem>
+                                <SelectItem value="3">Wednesday</SelectItem>
+                                <SelectItem value="4">Thursday</SelectItem>
+                                <SelectItem value="5">Friday</SelectItem>
+                                <SelectItem value="6">Saturday</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
-                  />
+
+                    {frequency === 'MONTHLY' && (
+                      <FormField
+                        control={form.control}
+                        name="dayOfMonth"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Day of Month</FormLabel>
+                            <Select
+                              onValueChange={(value) => field.onChange(parseInt(value))}
+                              value={field.value?.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select day" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Array.from({ length: 31 }, (_, i) => (
+                                  <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                    {i + 1}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {frequency && time && (
+                      <div className="rounded-md bg-muted p-3">
+                        <p className="text-sm text-muted-foreground">
+                          {getCronDescription({
+                            frequency,
+                            time,
+                            dayOfWeek,
+                            dayOfMonth,
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <FormField
                     control={form.control}

@@ -34,7 +34,7 @@ export default function SignupPage() {
       // Redirect to onboarding to create/join household
       router.push('/onboarding');
       router.refresh();
-    } catch {
+    } catch (e) {
       form.setError('root', {
         type: 'manual',
         message: 'An unexpected error occurred'

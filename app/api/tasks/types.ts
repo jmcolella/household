@@ -25,4 +25,5 @@ export interface TaskResponse {
   updatedAt: string;  // ISO string
   hasReminder: boolean;
   nextTriggerAt: string | null;  // ISO string
+  cronSchedule: string | null;
 }

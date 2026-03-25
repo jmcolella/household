@@ -12,6 +12,7 @@ export interface TaskExecutionResponse {
   completedBy: number | null;
   completedByName: string | null;
   completionNotes: string | null;
+  cancellationReason: string | null;
   expectedCompletedAt: string;  // ISO string
   isOverdue: boolean;
   createdAt: string;  // ISO string
@@ -30,5 +31,11 @@ export interface AssignExecutionRequest {
 
 export interface CancelExecutionRequest {
   action: 'cancel';
-  reason: string;
+  reason?: string;
+}
+
+export interface CreateExecutionRequest {
+  taskId: number;
+  expectedCompletedAt: string; // ISO string
+  assignee?: number;
 }
