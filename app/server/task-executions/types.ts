@@ -11,6 +11,7 @@ export interface TaskExecutionDto {
   completedBy: number | null;
   completedByName: string | null;
   completionNotes: string | null;
+  cancellationReason: string | null;
   expectedCompletedAt: Date;
   isOverdue: boolean;
   createdAt: Date;
@@ -21,6 +22,7 @@ export interface ExecutionFilters {
   status?: TaskExecutionStatus;
   startDate?: string;
   endDate?: string;
+  taskId?: number;
 }
 
 export interface CompleteExecutionData {
@@ -32,5 +34,11 @@ export interface AssignExecutionData {
 }
 
 export interface CancelExecutionData {
-  reason: string;
+  reason?: string;
+}
+
+export interface CreateExecutionData {
+  taskId: number;
+  expectedCompletedAt: Date;
+  assignee?: number;
 }

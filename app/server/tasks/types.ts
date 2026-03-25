@@ -10,6 +10,7 @@ export interface TaskDto {
   updatedAt: Date;
   hasReminder: boolean;
   nextTriggerAt: Date | null;
+  cronSchedule: string | null;
 }
 
 // Service input types

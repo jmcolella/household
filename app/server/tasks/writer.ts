@@ -11,7 +11,7 @@ export class TaskWriter {
     userId: number,
     data: CreateTaskData
   ): Promise<TaskDto> {
-    return await db.transaction(async (tx) => {
+    const taskId = await db.transaction(async (tx) => {
       // 1. Insert task
       const [task] = await tx
         .insert(tasks)
@@ -53,35 +53,16 @@ export class TaskWriter {
         });
       }
 
-      // Fetch creator username and reminder within the transaction
-      const [creator] = await tx
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-
-      const reminderRecord = data.isRecurring && data.cronSchedule
-        ? await tx
-            .select()
-            .from(reminders)
-            .where(eq(reminders.taskId, task.id))
-            .limit(1)
-        : [];
-
-      // Build DTO from transaction data
-      return {
-        id: task.id,
-        householdId: task.householdId,
-        title: task.title,
-        description: task.description,
-        createdBy: task.createdBy,
-        createdByName: creator?.username || 'Unknown',
-        createdAt: task.createdAt,
-        updatedAt: task.updatedAt,
-        hasReminder: !!reminderRecord[0],
-        nextTriggerAt: reminderRecord[0]?.nextTriggerAt || null,
-      };
+      return task.id;
     });
+
+    // Fetch complete task with all joined data
+    const taskDto = await TaskReader.getTaskById(taskId);
+    if (!taskDto) {
+      throw new Error('Failed to fetch created task');
+    }
+
+    return taskDto;
   }
 
   static async updateTask(

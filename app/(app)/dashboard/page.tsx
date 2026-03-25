@@ -1,7 +1,8 @@
 'use client';
 
 import { useTaskExecutions } from '@/app/client/hooks/use-task-executions';
-import { TaskExecutionCard } from '@/components/task-execution-card';
+import { groupExecutionsByDate } from '@/lib/utils/date-grouping';
+import { ExecutionGroup } from '@/components/execution-group';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorMessage } from '@/components/error-message';
 import { EmptyState } from '@/components/empty-state';
@@ -11,29 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 export default function DashboardPage() {
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-
-  const {
-    data: todayTasks,
-    isLoading: loadingToday,
-    error: todayError,
-  } = useTaskExecutions({
+  const { data: executions, isLoading, error } = useTaskExecutions({
     status: 'OPEN',
-    startDate: today,
-    endDate: today,
   });
 
-  const {
-    data: overdueTasks,
-    isLoading: loadingOverdue,
-    error: overdueError,
-  } = useTaskExecutions({
-    status: 'OPEN',
-    endDate: yesterday,
-  });
-
-  if (loadingToday || loadingOverdue) {
+  if (isLoading) {
     return (
       <div className="min-h-screen">
         <LoadingSpinner />
@@ -42,22 +25,16 @@ export default function DashboardPage() {
     );
   }
 
-  if (todayError || overdueError) {
+  if (error) {
     return (
       <div className="min-h-screen p-4 pb-20">
-        <ErrorMessage
-          message={
-            todayError?.message ||
-            overdueError?.message ||
-            'Failed to load tasks'
-          }
-        />
+        <ErrorMessage message={error.message || 'Failed to load tasks'} />
         <BottomNav />
       </div>
     );
   }
 
-  const hasNoTasks = !todayTasks?.length && !overdueTasks?.length;
+  const hasNoTasks = !executions || executions.length === 0;
 
   return (
     <div className="min-h-screen pb-20">
@@ -74,8 +51,8 @@ export default function DashboardPage() {
 
         {hasNoTasks ? (
           <EmptyState
-            title="No tasks yet"
-            description="Create your first task to get started"
+            title="No open tasks"
+            description="You're all caught up! Create a new task to get started."
             action={
               <Link href="/tasks/new">
                 <Button>Create Task</Button>
@@ -84,32 +61,39 @@ export default function DashboardPage() {
           />
         ) : (
           <>
-            {overdueTasks && overdueTasks.length > 0 && (
-              <section className="mb-6">
-                <h2 className="text-xl font-semibold text-destructive mb-3">
-                  Overdue ({overdueTasks.length})
-                </h2>
-                {overdueTasks.map((task) => (
-                  <TaskExecutionCard key={task.id} execution={task} />
-                ))}
-              </section>
-            )}
-
-            <section>
-              <h2 className="text-xl font-semibold mb-3">
-                Today ({todayTasks?.length || 0})
-              </h2>
-              {todayTasks && todayTasks.length > 0 ? (
-                todayTasks.map((task) => (
-                  <TaskExecutionCard key={task.id} execution={task} />
-                ))
-              ) : (
-                <EmptyState
-                  title="No tasks for today"
-                  description="You're all caught up!"
-                />
-              )}
-            </section>
+            {(() => {
+              const groups = groupExecutionsByDate(executions);
+              return (
+                <>
+                  <ExecutionGroup
+                    title="Overdue"
+                    count={groups.overdue.length}
+                    executions={groups.overdue}
+                    defaultOpen={true}
+                    variant="destructive"
+                  />
+                  <ExecutionGroup
+                    title="Today"
+                    count={groups.today.length}
+                    executions={groups.today}
+                    defaultOpen={true}
+                  />
+                  <ExecutionGroup
+                    title="Upcoming (Next 7 Days)"
+                    count={groups.upcoming.length}
+                    executions={groups.upcoming}
+                    defaultOpen={false}
+                  />
+                  <ExecutionGroup
+                    title="Later"
+                    count={groups.later.length}
+                    executions={groups.later}
+                    defaultOpen={false}
+                    variant="secondary"
+                  />
+                </>
+              );
+            })()}
           </>
         )}
       </div>

@@ -28,6 +28,11 @@ export async function proxy(request: NextRequest) {
   // Public paths that don't require authentication
   const publicPaths = ['/login', '/signup', '/auth'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
+  const apiPath = request.nextUrl.pathname.startsWith('/api');
+
+  if (apiPath) {
+    return response
+  }
 
   // Redirect to login if not authenticated and trying to access protected routes
   if (!user && !isPublicPath) {

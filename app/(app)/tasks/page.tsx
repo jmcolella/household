@@ -57,25 +57,27 @@ export default function TasksPage() {
         ) : (
           <div className="space-y-3">
             {tasks?.map((task) => (
-              <Card key={task.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold">{task.title}</h3>
-                      {task.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {task.description}
-                        </p>
-                      )}
-                      {task.hasReminder && (
-                        <p className="text-sm text-primary mt-2">
-                          Recurring task
-                        </p>
-                      )}
+              <Link key={task.id} href={`/tasks/${task.id}`}>
+                <Card className="cursor-pointer hover:bg-accent transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold">{task.title}</h3>
+                        {task.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {task.description}
+                          </p>
+                        )}
+                        {task.hasReminder && (
+                          <p className="text-sm text-primary mt-2">
+                            Recurring task
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         )}

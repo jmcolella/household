@@ -2,12 +2,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-// Basic cron validation helper
-const isCronValid = (cron: string): boolean => {
-  const parts = cron.trim().split(/\s+/);
-  return parts.length === 5;
-};
-
 export const taskSchema = z.object({
   title: z
     .string()
@@ -18,19 +12,33 @@ export const taskSchema = z.object({
     .max(1000, 'Description must be less than 1000 characters')
     .optional(),
   isRecurring: z.boolean(),
-  cronSchedule: z.string().optional(),
+  frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).optional(),
+  time: z.string().optional(),
+  dayOfWeek: z.number().min(0).max(6).optional(),
+  dayOfMonth: z.number().min(1).max(31).optional(),
   expectedDate: z.string().optional(),
 }).refine(
   (data) => {
-    // If recurring, cronSchedule is required and valid
+    // If recurring, require frequency and time
     if (data.isRecurring) {
-      return data.cronSchedule && isCronValid(data.cronSchedule);
+      if (!data.frequency || !data.time) {
+        return false;
+      }
+      // If weekly, require dayOfWeek
+      if (data.frequency === 'WEEKLY' && data.dayOfWeek === undefined) {
+        return false;
+      }
+      // If monthly, require dayOfMonth
+      if (data.frequency === 'MONTHLY' && data.dayOfMonth === undefined) {
+        return false;
+      }
+      return true;
     }
     return true;
   },
   {
-    message: 'Invalid cron schedule format. Expected: "minute hour day month weekday"',
-    path: ['cronSchedule'],
+    message: 'Please complete all recurring schedule fields',
+    path: ['frequency'],
   }
 ).refine(
   (data) => {
@@ -55,7 +63,10 @@ export function useTaskForm() {
       title: '',
       description: '',
       isRecurring: false,
-      cronSchedule: '0 9 * * *',
+      frequency: 'DAILY',
+      time: '09:00',
+      dayOfWeek: undefined,
+      dayOfMonth: undefined,
       expectedDate: '',
     },
   });

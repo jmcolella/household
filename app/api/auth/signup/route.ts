@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/app/server/auth/service';
-import type { ApiResponse } from '@/app/api/types';
-import type { SignupRequest, UserResponse } from '../types';
+import type { ApiResponse,  } from '@/app/api/types';
+import { SignupRequest, UserResponse } from '@/app/api/auth/types'
 
 export async function POST(
   request: NextRequest

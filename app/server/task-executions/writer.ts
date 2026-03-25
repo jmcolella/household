@@ -1,10 +1,32 @@
 import { db } from '@/lib/db';
 import { taskExecutions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import type { TaskExecutionDto, CompleteExecutionData, AssignExecutionData, CancelExecutionData } from './types';
+import type { TaskExecutionDto, CompleteExecutionData, AssignExecutionData, CancelExecutionData, CreateExecutionData } from './types';
 import { TaskExecutionReader } from './reader';
 
 export class TaskExecutionWriter {
+  static async createExecution(
+    data: CreateExecutionData
+  ): Promise<TaskExecutionDto> {
+    const [execution] = await db
+      .insert(taskExecutions)
+      .values({
+        taskId: data.taskId,
+        status: 'OPEN',
+        expectedCompletedAt: data.expectedCompletedAt,
+        assignee: data.assignee || null,
+      })
+      .returning();
+
+    // Fetch complete execution with joined data
+    const executionDto = await TaskExecutionReader.getExecutionById(execution.id);
+    if (!executionDto) {
+      throw new Error('Failed to fetch created execution');
+    }
+
+    return executionDto;
+  }
+
   static async completeExecution(
     executionId: number,
     userId: number,

@@ -100,12 +100,6 @@ export async function PATCH(
 
       case 'cancel': {
         const { reason } = body;
-        if (!reason) {
-          return NextResponse.json(
-            { error: 'Cancellation reason is required' },
-            { status: 400 }
-          );
-        }
         execution = await TaskExecutionService.cancelExecution(
           executionId,
           { reason }
